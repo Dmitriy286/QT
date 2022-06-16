@@ -30,7 +30,7 @@ class MirrorWindow(QtWidgets.QWidget):
         self.ui.dial.sliderReleased.connect(self.slider_released)
 
 
-
+# ss
 
     def on_left_up_button_clicked(self):
         self.move(0, 0)
