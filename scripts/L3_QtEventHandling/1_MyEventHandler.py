@@ -35,11 +35,11 @@ class MyEventHandler(QtWidgets.QWidget):
     # def wheelEvent(self, event:QtGui.QWheelEvent) -> None:
     #     print(event.angleDelta())
 
-    # def event(self, event: QtCore.QEvent) -> bool:
-    #     print(event.type())
-    #
-    #     if event.type() == QtCore.QEvent.Type.Wheel:
-    #         print(event.angleDelta())
+    def event(self, event: QtCore.QEvent) -> bool:
+        print(event.type())
+
+        if event.type() == QtCore.QEvent.Type.Wheel:
+            print(event.angleDelta())
     #
     #     if event.type() == QtCore.QEvent.Close:
     #         event.setAccepted(False)
@@ -49,7 +49,7 @@ class MyEventHandler(QtWidgets.QWidget):
     #         print(f"Старая ширина: {event.oldSize().width()}")
     #         print(f"Высота: {self.size().height()}")
     #
-    #     return QtWidgets.QWidget.event(self, event)
+        return QtWidgets.QWidget.event(self, event)
 
     # def keyPressEvent(self, event: QtGui.QKeyEvent) -> None:
     #     print(event.count())

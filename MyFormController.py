@@ -1,7 +1,12 @@
 from PySide2 import QtWidgets, QtCore, QtGui
+from PySide2.QtCore import QDateTime, QSettings
+
 from MyForm import Ui_Form
+import datetime
+import time
 
 class MirrorWindow(QtWidgets.QWidget):
+    CONFIG = "config.ini"
 
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -11,6 +16,8 @@ class MirrorWindow(QtWidgets.QWidget):
 
         self.initUi()
 
+        self.load_settings()
+
     def initUi(self):
 
         self.ui.left_up.clicked.connect(self.on_left_up_button_clicked)
@@ -19,16 +26,22 @@ class MirrorWindow(QtWidgets.QWidget):
         self.ui.right_down.clicked.connect(self.on_right_down_button_clicked)
         self.ui.centre.clicked.connect(self.on_centre_button_clicked)
 
+        self.ui.get_window_data.clicked.connect(self.on_get_window_data_button_clicked)
+        self.ui.get_window_data.setShortcut('Ctrl+q')
+
+        # self.ui.dial.sliderMoved.connect(self.slider_position)
+        # self.ui.dial.sliderPressed.connect(self.slider_pressed)
+        # self.ui.dial.sliderReleased.connect(self.slider_released)
+        self.ui.dial.valueChanged.connect(self.value_dial_changed)
+        self.ui.slider.valueChanged.connect(self.value_slider_changed)
+        # self.ui.slider.valueChanged.connect(self.ui.dial.setValue(self.ui.slider.value()))
+
+        self.ui.get_window_data.installEventFilter(self)
+        self.ui.dial.installEventFilter(self)
+        self.ui.centre.installEventFilter(self)
 
 
-
-
-
-        self.ui.dial.valueChanged.connect(self.value_changed)
-        self.ui.dial.sliderMoved.connect(self.slider_position)
-        self.ui.dial.sliderPressed.connect(self.slider_pressed)
-        self.ui.dial.sliderReleased.connect(self.slider_released)
-
+        self.ui.comboBox.currentTextChanged.connect(self.setMode)
 
 # ss
 
@@ -71,37 +84,121 @@ class MirrorWindow(QtWidgets.QWidget):
         x = screen_width / 2 - app_width / 2
         self.move(x, y)
 
-
+    def on_get_window_data_button_clicked(self):
+        self.get_screen_info()
 
 
     def event(self, event: QtCore.QEvent) -> bool:
         if event.type() == QtCore.QEvent.Resize:
             print(event.size().width())
             print(self.size())
-            self.ui.plainTextEdit.appendPlainText(self.size)
+            str_size = str(self.size())
+            self.ui.plainTextEdit.appendPlainText(str_size)
 
         return QtWidgets.QWidget.event(self, event)
 
+    def changeEvent(self, event: QtCore.QEvent) -> None:
+        dt = QDateTime()
+        print(event.type())
+        if event.type() == QtCore.QEvent.Type.WindowStateChange:
+            if self.isMaximized():
+                self.ui.plainTextEdit.appendPlainText("Окно развернуто")
+                print("Окно развернуто")
+            elif self.isMinimized():
+                print("Окно свернуто")
+                print(datetime.time.strftime("%H:%M:%S"))
+                print(dt)
+                self.ui.plainTextEdit.appendPlainText("Окно свернуто")
+                self.ui.plainTextEdit.appendPlainText(datetime.time.strftime("%H:%M:%S"))
+            elif self.isActiveWindow():
+                self.ui.plainTextEdit.appendPlainText("Окно активно")
+                print("Окно активно")
+
+
+    def showEvent(self, e):
+        dt = QDateTime()
+        print("Окно отображено")
+        print(datetime.time())
+        print(dt.currentDateTime())
+        self.ui.plainTextEdit.appendPlainText("Окно отображено")
+        self.ui.plainTextEdit.appendPlainText(str(dt.currentDateTime()))
 
     def moveEvent(self, event: QtGui.QMoveEvent) -> None:
         print(self.pos().x(), self.pos().y())
 
     def get_screen_info(self):
+        print("Список объектов всех экранов:")
         print(QtWidgets.QApplication.screens())
+        self.ui.plainTextEdit.appendPlainText(str(QtWidgets.QApplication.screens()))
+        print("Кол-во экранов:")
+        print(len(QtWidgets.QApplication.screens()))
+        self.ui.plainTextEdit.appendPlainText(str(len(QtWidgets.QApplication.screens())))
+        print("Объект основного окна:")
         print(QtWidgets.QApplication.primaryScreen())
+        self.ui.plainTextEdit.appendPlainText(str(QtWidgets.QApplication.primaryScreen()))
 
-        print(self.size)
+        print(QtWidgets.QApplication.allWindows())
+        self.ui.plainTextEdit.appendPlainText(str(QtWidgets.QApplication.allWindows()))
+        print(QtWidgets.QApplication.activeWindow())
+        self.ui.plainTextEdit.appendPlainText(str(QtWidgets.QApplication.activeWindow()))
+
+        print("Размеры окна:")
+        print(self.size())
+        self.ui.plainTextEdit.appendPlainText(str(self.size()))
+        print("Координаты окна:")
         print(self.pos())
-
-    def changeEvent(self, event: QtCore.QEvent) -> None:
-        print(event.type())
-        if event.type() == QtCore.QEvent.Type.WindowStateChange:
-            if self.isMinimized():
-                print("Окно свернуто")
+        self.ui.plainTextEdit.appendPlainText(str(self.pos()))
 
 
-    def value_changed(self, i):
-        print(i)
+        print("Координаты центра приложения:")
+        print(self.pos().x() + self.size().width()/2)
+        print(self.pos().y() + self.size().height()/2)
+        self.ui.plainTextEdit.appendPlainText(str(self.pos().x() + self.size().width()/2))
+        self.ui.plainTextEdit.appendPlainText(str(self.pos().y() + self.size().height()/2))
+
+        # # setplaintext
+        # # appendplaintext
+
+        print(f"Минимальные размеры окна: {self.minimumWidth()}, {self.minimumHeight()}, \n"
+              f"максимальные размеры окна: {self.maximumWidth()}, {self.maximumHeight()}")
+
+        self.desktop = app.desktop()
+        print("Разрешение экрана:")
+        print(self.desktop.screenGeometry().height())
+        print(self.desktop.screenGeometry().width())
+
+
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent):
+        if watched == self.ui.centre and event.type() == QtCore.QEvent.KeyPress:
+            print(f"key {event.text()} pressed")
+
+        if watched == self.ui.dial and event.type() == QtCore.QEvent.KeyPress:
+            print(f"key {event.text()} pressed")
+
+            print(event.type())
+            if event.key() == QtCore.Qt.Key_T:
+                self.dial_value_change(1)
+                print(event.text())
+            elif event.key() == QtCore.Qt.Key_Y:
+                self.dial_value_change(-1)
+                print(event.text())
+
+        return super(MirrorWindow, self).eventFilter(watched, event)
+
+    def value_dial_changed(self):
+        self.ui.lcdNumber.display(self.ui.dial.value())
+
+        self.ui.slider.setValue(self.ui.dial.value())
+
+    def value_slider_changed(self):
+        self.ui.lcdNumber.display(self.ui.slider.value())
+
+        self.ui.dial.setValue(self.ui.slider.value())
+
+    def dial_value_change(self, i):
+        base_value = self.ui.dial.value()
+        new_value = base_value + i
+        self.ui.dial.setValue(new_value)
 
     def slider_position(self, p):
         print("position", p)
@@ -112,19 +209,45 @@ class MirrorWindow(QtWidgets.QWidget):
     def slider_released(self):
         print("Released")
 
-    def get_screen_info(self):
-        print(QtWidgets.QApplication.screens())
-        print(QtWidgets.QApplication.primaryScreen())
+    def setMode(self):
+        if self.ui.comboBox.currentText() == "HEX":
+            self.ui.lcdNumber.setHexMode()
+            print("HEX")
+        elif self.ui.comboBox.currentText() == "BIN":
+            self.ui.lcdNumber.setBinMode()
+            print("BIN")
+        elif self.ui.comboBox.currentText() == "OCT":
+            self.ui.lcdNumber.setOctMode()
+            print("OCT")
+        elif self.ui.comboBox.currentText() == "DEC":
+            self.ui.lcdNumber.setDecMode()
+            print("DEC")
 
-        print(self.size)
-        print(self.pos())
+    def save_settings(self):
+        settings = QSettings(self.CONFIG, QSettings.IniFormat)
+        settings.setValue("lcdNumber_value", self.ui.lcdNumber.value())
+        settings.setValue("combobox_select", self.ui.comboBox.currentText())
+        settings.setValue("dial_select", self.ui.dial.value())
+        print(type(self.ui.dial.value()))
+        print(self.ui.dial.value())
+        print(type(settings.value("dial_select", "")))
+        print(settings.value("dial_select", ""))
+        print(type(settings.value("dial_select")))
+        print(settings.value("dial_select"))
 
-        self.ui.plainTextEdit.appendPlainText(self.size)
-        # # setplaintext
-        # # appendplaintext
+    def load_settings(self):
+        settings = QSettings(self.CONFIG, QSettings.IniFormat)
+        self.ui.comboBox.setCurrentText(settings.value("combobox_select", ""))
+        self.ui.lcdNumber.display(settings.value("lcdNumber_value", ""))
+        print(type(settings.value("dial_select", "")))
+        value = int(settings.value("dial_select", ""))
+        print(value)
+        self.ui.dial.setValue(value)
 
 
-
+    def closeEvent(self, event):
+        self.save_settings()
+        super().closeEvent(event)
 
 
 
@@ -136,36 +259,11 @@ if __name__ == "__main__":
 
     app.exec_()
 
-
-
 # Задания:
 # ВЫВОД В ЛОГ
 
-# + Перемещение окна по заданным координатам
-#
-# Получение параметров экрана + установить для элемента shortCut (горячую клавишу)
-#
-# Кол-во экранов
-# Текущее основное окно
-# Разрешение экрана
 # На каком экране окно находится
-# Размеры окна
-# Минимальные размеры окна
-# Текущее положение (координаты) окна
-# Координаты центра приложения
-# Отслеживани bе состояния окна (свернуто/развёрнуто/активно/отображено + время)
 #
 # ВЫВОД В ТЕРМИНАЛ
-# + Информация о координатах при перемещении окна
-#
-# + Информиция о размерах окна при изменении размера
 #
 # Значение кнопки когда она была нажата eventFilter
-#
-# Добавить в dial возможность установки значений кнопками клавиатуры(+ и -), выводить новые значения в лог slots
-#
-# Законектить между собой QDial, QSlider, QLCDNumber
-#
-# Для QLCDNumber сделать отображение в различных системах счисления QSettings
-#
-# Сохранять значение и режима LCDNumber в системные настройки, при перезапуске программы выводить в него соответствующие значения
